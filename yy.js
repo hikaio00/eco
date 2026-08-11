@@ -1,201 +1,153 @@
 ymaps.ready(init);
 
-// Пароль редактора
-const ADMIN_PASSWORD = "123";
-
-let map;
-let isBuildingTrail = false;
-let selectedTrailPoints = [];
-
-// Загружаем данные из хранилища
-let places = JSON.parse(localStorage.getItem("eco_places")) || [];
-let savedTrail = JSON.parse(localStorage.getItem("eco_trail_path")) || [];
+var myMap;
+var currentPolyline = null;
+var trailPoints = [];
+var isDrawingTrail = false;
 
 function init() {
-    map = new ymaps.Map("map", {
-        center: [55.751244, 37.618423],
-        zoom: 14,
-        controls: ['zoomControl', 'fullscreenControl']
+    var savedPlaces = [];
+    var savedPath = [];
+
+    try {
+        savedPlaces = JSON.parse(localStorage.getItem('eco_places')) || [];
+        savedPath = JSON.parse(localStorage.getItem('eco_trail_path')) || [];
+    } catch (e) {
+        console.error("Ошибка чтения данных:", e);
+    }
+
+    var defaultCenter = [55.751244, 37.618423];
+    if (savedPlaces.length > 0 && savedPlaces[0].coords) {
+        defaultCenter = savedPlaces[0].coords;
+    } else if (savedPath.length > 0) {
+        defaultCenter = savedPath[0];
+    }
+
+    myMap = new ymaps.Map("map", {
+        center: defaultCenter,
+        zoom: 13,
+        controls: ['zoomControl', 'typeSelector', 'fullscreenControl']
     });
 
-    checkAdminStatus();
-    renderMap();
-}
+    var isEditor = localStorage.getItem('isEditorLoggedIn') === 'true';
 
-function renderMap() {
-    map.geoObjects.removeAll();
+    // Отрисовка всех сохраненных меток
+    savedPlaces.forEach(function(place, index) {
+        var deleteBtn = isEditor 
+            ? '<br><br><button onclick="deleteSinglePlace(' + index + ')" style="background:#e74c3c; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">🗑️ Удалить метку</button>'
+            : '';
 
-    // 1. Отрисовываем существующую тропу
-    if (savedTrail.length > 1) {
-        const polyline = new ymaps.Polyline(savedTrail, {}, {
-            strokeColor: "#2d5a27",
+        var placemarkContent = {
+            balloonContentHeader: '<h3>' + (place.name || '') + '</h3>',
+            balloonContentBody: '<p>' + (place.description || '') + '</p>' +
+                (place.photo ? '<img src="' + place.photo + '" style="max-width:100%; height:auto; border-radius:4px;">' : '') +
+                deleteBtn,
+            balloonContentFooter: '<small>Категория: ' + (place.category || 'Не указана') + '</small>'
+        };
+
+        var placemarkOptions = {
+            preset: place.category === 'Растения' ? 'islands#greenLeafIcon' : 'islands#orangeCircleIcon'
+        };
+
+        var placemark = new ymaps.Placemark(place.coords, placemarkContent, placemarkOptions);
+        myMap.geoObjects.add(placemark);
+    });
+
+    // Отрисовка линии тропы
+    if (savedPath.length > 0) {
+        currentPolyline = new ymaps.Polyline(savedPath, {
+            hintContent: "Экологическая тропа"
+        }, {
+            strokeColor: "#27ae60",
             strokeWidth: 5,
             strokeOpacity: 0.8
         });
-        map.geoObjects.add(polyline);
+        myMap.geoObjects.add(currentPolyline);
     }
 
-    // 2. Загружаем персональные голоса текущего пользователя
-    const userVotes = JSON.parse(localStorage.getItem("eco_user_votes")) || {};
-    const isAdmin = localStorage.getItem("is_admin") === "true";
+    // Событие клика для рисования тропы
+    myMap.events.add('click', function (e) {
+        if (!isDrawingTrail) return;
 
-    // 3. Отрисовываем метки
-    places.forEach((item, index) => {
-        const myVote = userVotes[index]; // 'yes', 'no' или undefined
+        var coords = e.get('coords');
+        trailPoints.push(coords);
 
-        // Выделяем активную кнопку визуально
-        const yesStyle = myVote === 'yes'
-            ? 'background:#2d5a27; color:white; border:2px solid #1b3e18; font-weight:bold;'
-            : 'background:#e8f5e9; color:#2d5a27; border:1px solid #c8e6c9;';
+        if (currentPolyline) {
+            myMap.geoObjects.remove(currentPolyline);
+        }
 
-        const noStyle = myVote === 'no'
-            ? 'background:#c62828; color:white; border:2px solid #8e0000; font-weight:bold;'
-            : 'background:#ffebee; color:#c62828; border:1px solid #ffcdd2;';
-
-        const placemark = new ymaps.Placemark([item.lat, item.lng], {
-            balloonContentHeader: `<b>${item.title}</b>`,
-            balloonContentBody: `
-                <p>${item.description}</p>
-                ${item.image ? `<img src="${item.image}" style="width:100%; max-width:200px; border-radius:8px; display:block; margin-bottom:10px;">` : ''}
-
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                    <p style="margin:0 0 6px 0; font-size:12px; color:#555;">Встречали этот вид на тропе?</p>
-                    <button onclick="votePlace(${index}, 'yes')" style="${yesStyle} padding:5px 10px; border-radius:6px; cursor:pointer; margin-right:6px; transition:0.2s;">
-                        👍 Да (${item.votesYes || 0})
-                    </button>
-                    <button onclick="votePlace(${index}, 'no')" style="${noStyle} padding:5px 10px; border-radius:6px; cursor:pointer; transition:0.2s;">
-                        👎 Нет (${item.votesNo || 0})
-                    </button>
-                </div>
-
-                ${isAdmin ? `
-                    <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #ccc;">
-                        <button onclick="deletePlace(${index})" style="background:#d32f2f; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">❌ Удалить метку</button>
-                    </div>
-                ` : ''}
-            `
+        currentPolyline = new ymaps.Polyline(trailPoints, {}, {
+            strokeColor: "#27ae60",
+            strokeWidth: 5,
+            strokeOpacity: 0.8
         });
 
-        placemark.events.add('click', function (e) {
-            if (isBuildingTrail) {
-                e.preventDefault();
-                selectedTrailPoints.push([item.lat, item.lng]);
-                drawTempTrail();
-            }
-        });
-
-        map.geoObjects.add(placemark);
+        myMap.geoObjects.add(currentPolyline);
     });
 }
 
-// Логика умного голосования
-window.votePlace = function(index, type) {
-    let userVotes = JSON.parse(localStorage.getItem("eco_user_votes")) || {};
-    const currentVote = userVotes[index]; // Предыдущий голос пользователя ('yes', 'no' или undefined)
+// ФУНКЦИЯ ВХОДА / ВЫХОДА РЕДАКТОРА (исправляет ошибку со скриншота)
+function toggleAdminLogin() {
+    var isEditor = localStorage.getItem('isEditorLoggedIn') === 'true';
 
-    if (!places[index].votesYes) places[index].votesYes = 0;
-    if (!places[index].votesNo) places[index].votesNo = 0;
-
-    if (currentVote === type) {
-        // 1. Повторное нажатие на ту же кнопку -> Убираем голос
-        if (type === 'yes') places[index].votesYes--;
-        if (type === 'no') places[index].votesNo--;
-        delete userVotes[index];
-    } else if (currentVote) {
-        // 2. Смена решения (было Да, стало Нет или наоборот)
-        if (type === 'yes') {
-            places[index].votesYes++;
-            places[index].votesNo--;
-        } else {
-            places[index].votesNo++;
-            places[index].votesYes--;
-        }
-        userVotes[index] = type;
-    } else {
-        // 3. Первое голосование
-        if (type === 'yes') places[index].votesYes++;
-        if (type === 'no') places[index].votesNo++;
-        userVotes[index] = type;
-    }
-
-    // Сохраняем изменения
-    localStorage.setItem("eco_places", JSON.stringify(places));
-    localStorage.setItem("eco_user_votes", JSON.stringify(userVotes));
-
-    renderMap();
-};
-
-window.toggleAdminLogin = function() {
-    const isAdmin = localStorage.getItem("is_admin") === "true";
-
-    if (isAdmin) {
-        localStorage.setItem("is_admin", "false");
+    if (isEditor) {
+        localStorage.setItem('isEditorLoggedIn', 'false');
         alert("Вы вышли из режима редактора.");
+        location.reload();
     } else {
-        const password = prompt("Введите пароль редактора:");
-        if (password === ADMIN_PASSWORD) {
-            localStorage.setItem("is_admin", "true");
-            alert("Режим редактора включен!");
+        var password = prompt("Введите пароль редактора:");
+        if (password === "admin" || password === "1234") { // При необходимости укажите свой пароль
+            localStorage.setItem('isEditorLoggedIn', 'true');
+            alert("Вы успешно вошли как редактор!");
+            location.reload();
         } else if (password !== null) {
             alert("Неверный пароль!");
         }
     }
-    checkAdminStatus();
-    renderMap();
-};
-
-function checkAdminStatus() {
-    const isAdmin = localStorage.getItem("is_admin") === "true";
-    document.getElementById("admin-panel").style.display = isAdmin ? "flex" : "none";
-    document.getElementById("login-btn").innerText = isAdmin ? "🚪 Выйти из редактора" : "🔑 Вход для редактора";
 }
 
-window.deletePlace = function(index) {
+// Функция удаления конкретной метки
+function deleteSinglePlace(index) {
     if (confirm("Удалить эту метку?")) {
-        places.splice(index, 1);
-
-        // Удаляем голос для удаленной метки
-        let userVotes = JSON.parse(localStorage.getItem("eco_user_votes")) || {};
-        delete userVotes[index];
-        localStorage.setItem("eco_user_votes", JSON.stringify(userVotes));
-
-        localStorage.setItem("eco_places", JSON.stringify(places));
-        renderMap();
+        var savedPlaces = JSON.parse(localStorage.getItem('eco_places')) || [];
+        savedPlaces.splice(index, 1);
+        localStorage.setItem('eco_places', JSON.stringify(savedPlaces));
+        location.reload();
     }
-};
+}
 
-window.toggleTrailBuilder = function() {
-    const btn = document.getElementById("toggle-trail-btn");
-    const hint = document.getElementById("trail-hint");
+// Включение / выключение режима рисования тропы
+function toggleTrailMode() {
+    isDrawingTrail = !isDrawingTrail;
+    var btn = document.getElementById('drawTrailBtn');
 
-    if (!isBuildingTrail) {
-        isBuildingTrail = true;
-        selectedTrailPoints = [];
-        btn.innerText = "✅ Завершить и сохранить тропу";
-        hint.style.display = "block";
-    } else {
-        isBuildingTrail = false;
-        btn.innerText = "✏️ Соединить метки в тропу";
-        hint.style.display = "none";
-
-        if (selectedTrailPoints.length > 1) {
-            savedTrail = selectedTrailPoints;
-            localStorage.setItem("eco_trail_path", JSON.stringify(savedTrail));
-            alert("Тропа успешно сохранена!");
-        } else {
-            alert("Для создания тропы нужно выбрать хотя бы 2 метки.");
+    if (isDrawingTrail) {
+        trailPoints = JSON.parse(localStorage.getItem('eco_trail_path')) || [];
+        if (btn) {
+            btn.innerText = "💾 Сохранить тропу";
+            btn.style.background = "#f39c12";
         }
-        renderMap();
+        alert("Режим рисования включен! Кликайте по карте, чтобы строить тропу.");
+    } else {
+        if (btn) {
+            btn.innerText = "✏️ Нарисовать тропу";
+            btn.style.background = "#27ae60";
+        }
+        localStorage.setItem('eco_trail_path', JSON.stringify(trailPoints));
+        alert("Тропа успешно сохранена!");
     }
-};
+}
 
-function drawTempTrail() {
-    renderMap();
-    if (selectedTrailPoints.length > 1) {
-        const polyline = new ymaps.Polyline(selectedTrailPoints, {}, {
-            strokeColor: "#ff9800",
-            strokeWidth: 5
-        });
-        map.geoObjects.add(polyline);
+// Функция удаления только тропы
+function deleteTrailOnly() {
+    if (confirm("Вы уверены, что хотите удалить только тропу? Метки останутся.")) {
+        localStorage.removeItem('eco_trail_path');
+        if (currentPolyline) {
+            myMap.geoObjects.remove(currentPolyline);
+            currentPolyline = null;
+        }
+        trailPoints = [];
+        alert("Тропа удалена!");
+        location.reload();
     }
 }
