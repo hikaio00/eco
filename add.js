@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
 
+            var category = document.getElementById('category').value;
             var title = document.getElementById('title').value;
             var description = document.getElementById('description').value;
             var image = document.getElementById('image').value;
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var savedPlaces = JSON.parse(localStorage.getItem('eco_places')) || [];
 
             savedPlaces.push({
+                category: category,
                 title: title,
                 description: description,
                 image: image,
