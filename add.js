@@ -1,22 +1,30 @@
-const form = document.getElementById('add-form');
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('add-form');
 
-form.addEventListener('submit', function(event) {
-    event.preventDefault();
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-    // Забираем данные из полей
-    const newPlace = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        image: document.getElementById('image').value,
-        lat: parseFloat(document.getElementById('lat').value),
-        lng: parseFloat(document.getElementById('lng').value)
-    };
+            var title = document.getElementById('title').value;
+            var description = document.getElementById('description').value;
+            var image = document.getElementById('image').value;
+            var lat = parseFloat(document.getElementById('lat').value);
+            var lng = parseFloat(document.getElementById('lng').value);
 
-    // Сохраняем в памяти браузера
-    let places = JSON.parse(localStorage.getItem("eco_places")) || [];
-    places.push(newPlace);
-    localStorage.setItem("eco_places", JSON.stringify(places));
+            var savedPlaces = JSON.parse(localStorage.getItem('eco_places')) || [];
 
-    // Переходим обратно на главную страницу с картой
-    window.location.href = "index.html";
+            savedPlaces.push({
+                title: title,
+                description: description,
+                image: image,
+                lat: lat,
+                lng: lng,
+                coords: [lat, lng]
+            });
+
+            localStorage.setItem('eco_places', JSON.stringify(savedPlaces));
+            alert('Новый вид успешно добавлен!');
+            window.location.href = 'index.html';
+        });
+    }
 });
