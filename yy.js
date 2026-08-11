@@ -6,14 +6,11 @@ var isDrawingTrail = false;
 ymaps.ready(init);
 
 function init() {
-    // 1. Проверяем статус редактора (показываем/скрываем кнопки)
     checkAdminStatus();
 
-    // 2. Загружаем сохраненные данные
     var savedPlaces = JSON.parse(localStorage.getItem('eco_places')) || [];
     var savedPath = JSON.parse(localStorage.getItem('eco_trail_path')) || [];
 
-    // Центрирование карты
     var defaultCenter = [55.751244, 37.618423];
     if (savedPlaces.length > 0 && savedPlaces[0].coords) {
         defaultCenter = savedPlaces[0].coords;
@@ -31,9 +28,10 @@ function init() {
 
     var isEditor = localStorage.getItem('isEditorLoggedIn') === 'true';
 
-    // 3. Отображение меток
+    // Отображение меток
     savedPlaces.forEach(function(place, index) {
         var coords = place.coords || [parseFloat(place.lat), parseFloat(place.lng)];
+        var category = place.category || 'Растения';
         
         var deleteBtn = isEditor 
             ? '<br><br><button onclick="deleteSinglePlace(' + index + ')" style="background:#e74c3c; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">🗑️ Удалить метку</button>'
@@ -44,12 +42,11 @@ function init() {
             balloonContentBody: '<p>' + (place.description || '') + '</p>' +
                 (place.image || place.photo ? '<img src="' + (place.image || place.photo) + '" style="max-width:100%; height:auto; border-radius:4px;">' : '') +
                 deleteBtn,
-            balloonContentFooter: '<small>Категория: ' + (place.category || 'Не указана') + '</small>'
+            balloonContentFooter: '<small>Вид: ' + category + '</small>'
         }, {
-            preset: place.category === 'Растения' ? 'islands#greenLeafIcon' : 'islands#orangeCircleIcon'
+            preset: category === 'Растения' ? 'islands#greenLeafIcon' : 'islands#orangeCircleIcon'
         });
 
-        // Если включен режим рисования тропы — клик по метке добавляет её в тропу
         placemark.events.add('click', function () {
             if (isDrawingTrail) {
                 addPointToTrail(coords);
@@ -59,13 +56,13 @@ function init() {
         myMap.geoObjects.add(placemark);
     });
 
-    // 4. Отображение сохраненной тропы
+    // Отображение тропы при загрузке
     if (savedPath.length > 0) {
         trailPoints = savedPath;
         drawPolyline(savedPath);
     }
 
-    // Клик по свободной точке карты во время рисования тропы
+    // Клик по карте при рисовании тропы
     myMap.events.add('click', function (e) {
         if (isDrawingTrail) {
             var coords = e.get('coords');
@@ -74,11 +71,16 @@ function init() {
     });
 }
 
-// Отрисовка линии
+// Отрисовка линии (с защитой от вылета при < 2 точек)
 function drawPolyline(coordsArray) {
     if (currentPolyline) {
         myMap.geoObjects.remove(currentPolyline);
+        currentPolyline = null;
     }
+    
+    // Линию рисуем только если есть хотя бы 2 точки
+    if (!coordsArray || coordsArray.length < 2) return;
+
     currentPolyline = new ymaps.Polyline(coordsArray, {
         hintContent: "Экологическая тропа"
     }, {
@@ -89,26 +91,19 @@ function drawPolyline(coordsArray) {
     myMap.geoObjects.add(currentPolyline);
 }
 
-// Добавление точки к тропе
 function addPointToTrail(coords) {
     trailPoints.push(coords);
     drawPolyline(trailPoints);
 }
 
-// Проверка входа редактора и показ/скрытие панели
 function checkAdminStatus() {
     var isEditor = localStorage.getItem('isEditorLoggedIn') === 'true';
     var adminPanel = document.getElementById('admin-panel');
     var loginBtn = document.getElementById('login-btn');
 
-    if (adminPanel) {
-        adminPanel.style.display = isEditor ? 'flex' : 'none';
-    }
-    if (loginBtn) {
-        loginBtn.innerText = isEditor ? '🚪 Выход' : '🔑 Вход для редактора';
-    }
+    if (adminPanel) adminPanel.style.display = isEditor ? 'flex' : 'none';
+    if (loginBtn) loginBtn.innerText = isEditor ? '🚪 Выход' : '🔑 Вход для редактора';
 
-    // Автоматически добавляем кнопку удаления тропы в панель редактора
     if (isEditor && adminPanel && !document.getElementById('delete-trail-btn')) {
         var delBtn = document.createElement('button');
         delBtn.id = 'delete-trail-btn';
@@ -121,7 +116,6 @@ function checkAdminStatus() {
     }
 }
 
-// Функция входа/выхода (вызывается по кнопке "🔑 Вход для редактора")
 function toggleAdminLogin() {
     var isEditor = localStorage.getItem('isEditorLoggedIn') === 'true';
 
@@ -131,7 +125,7 @@ function toggleAdminLogin() {
         location.reload();
     } else {
         var password = prompt("Введите пароль редактора:");
-        if (password === "admin" || password === "1234") { // Задайте свой пароль тут
+        if (password === "admin" || password === "1234") {
             localStorage.setItem('isEditorLoggedIn', 'true');
             alert("Вы успешно вошли!");
             location.reload();
@@ -141,7 +135,6 @@ function toggleAdminLogin() {
     }
 }
 
-// Функция построения тропы (вызывается по кнопке "✏️ Соединить метки в тропу")
 function toggleTrailBuilder() {
     isDrawingTrail = !isDrawingTrail;
     var btn = document.getElementById('toggle-trail-btn');
@@ -153,23 +146,18 @@ function toggleTrailBuilder() {
             btn.innerText = "💾 Завершить и сохранить тропу";
             btn.style.background = "#f39c12";
         }
-        if (hint) {
-            hint.style.display = "block";
-        }
+        if (hint) hint.style.display = "block";
     } else {
         if (btn) {
             btn.innerText = "✏️ Соединить метки в тропу";
             btn.style.background = "";
         }
-        if (hint) {
-            hint.style.display = "none";
-        }
+        if (hint) hint.style.display = "none";
         localStorage.setItem('eco_trail_path', JSON.stringify(trailPoints));
         alert("Тропа успешно сохранена!");
     }
 }
 
-// Функция удаления конкретной метки
 function deleteSinglePlace(index) {
     if (confirm("Удалить эту метку?")) {
         var savedPlaces = JSON.parse(localStorage.getItem('eco_places')) || [];
@@ -179,16 +167,17 @@ function deleteSinglePlace(index) {
     }
 }
 
-// Функция УДАЛЕНИЯ ТРОПЫ отдельно от меток
 function deleteTrailOnly() {
     if (confirm("Вы уверены, что хотите полностью удалить тропу? Метки останутся.")) {
         localStorage.removeItem('eco_trail_path');
+        trailPoints = [];
         if (currentPolyline) {
             myMap.geoObjects.remove(currentPolyline);
             currentPolyline = null;
         }
-        trailPoints = [];
         alert("Тропа удалена!");
         location.reload();
     }
 }
+
+
