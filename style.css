@@ -1,0 +1,140 @@
+/* Подключаем современный шрифтовой набор с мягким начертанием */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: #f4f6f0; /* Мягкий светлый природный фон */
+    color: #2c3e2e; /* Тёмно-зеленый текст вместо резкого чёрного */
+}
+
+/* Шапка сайта */
+header {
+    background-color: #2d5a27; /* Глубокий лесной зелёный */
+    color: #ffffff;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(45, 90, 39, 0.15);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Основной контейнер */
+main {
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+/* Стилизация блока с картой */
+#map {
+    width: 100%;
+    height: 520px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border: 3px solid #e2ebdb;
+    overflow: hidden;
+}
+
+/* Экологичные кнопки */
+.nav-btn, .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    background-color: #438e38; /* Насыщенный травянистый цвет */
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(67, 142, 56, 0.2);
+}
+
+.nav-btn:hover, .submit-btn:hover {
+    background-color: #336e2a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(67, 142, 56, 0.3);
+}
+
+/* Контейнер формы на странице add.html */
+.form-container {
+    max-width: 520px;
+    margin: 20px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 18px;
+    border: 1px solid #e2ebdb;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    font-size: 14px;
+    color: #3a533c;
+    gap: 6px;
+}
+
+input, textarea {
+    padding: 12px 14px;
+    border: 1.5px solid #d0dcca;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background-color: #fafcf8;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus {
+    border-color: #438e38;
+    background-color: #ffffff;
+}
+
+textarea {
+    resize: vertical;
+    height: 90px;
+}
+
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-btn.secondary {
+    background-color: #8d6e63;
+}
+
+.nav-btn.secondary:hover {
+    background-color: #6d4c41;
+}
+
+.nav-btn.outline {
+    background-color: transparent;
+    border: 2px solid #ffffff;
+    color: #ffffff;
+}
+
+.nav-btn.outline:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}

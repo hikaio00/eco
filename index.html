@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Интерактивная Экотропа</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Подключаем Яндекс Карты -->
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+    <header>
+        <h1>Интерактивная Экотропа</h1>
+
+        <div class="header-buttons">
+            <!-- Элементы только для администратора (по умолчанию скрыты) -->
+            <div id="admin-panel" style="display: none; gap: 10px;">
+                <a href="add.html" class="nav-btn">➕ Добавить вид</a>
+                <button id="toggle-trail-btn" class="nav-btn secondary" onclick="toggleTrailBuilder()">✏️ Соединить метки в тропу</button>
+            </div>
+
+            <!-- Кнопка входа/выхода админа -->
+            <button id="login-btn" class="nav-btn outline" onclick="toggleAdminLogin()">🔑 Вход для редактора</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Подсказка при согласовании тропы -->
+        <div id="trail-hint" style="display:none; margin-bottom:10px; background:#e8f5e9; padding:10px; border-radius:8px; color:#2e7d32; font-weight:600;">
+            Режим рисования тропы: Нажимайте на метки на карте по очереди, чтобы соединить их линией. Нажмите «Завершить тропу», когда закончите.
+        </div>
+
+        <div id="map"></div>
+    </main>
+
+    <script src="yy.js"></script>
+</body>
+</html>
