@@ -12,10 +12,9 @@ function init() {
     var savedPath = JSON.parse(localStorage.getItem('eco_trail_path')) || [];
 
     var defaultCenter = [55.751244, 37.618423];
-    if (savedPlaces.length > 0 && savedPlaces[0].coords) {
-        defaultCenter = savedPlaces[0].coords;
-    } else if (savedPlaces.length > 0 && savedPlaces[0].lat && savedPlaces[0].lng) {
-        defaultCenter = [parseFloat(savedPlaces[0].lat), parseFloat(savedPlaces[0].lng)];
+    if (savedPlaces.length > 0) {
+        var p = savedPlaces[0];
+        defaultCenter = p.coords || [parseFloat(p.lat), parseFloat(p.lng)];
     } else if (savedPath.length > 0) {
         defaultCenter = savedPath[0];
     }
@@ -28,7 +27,7 @@ function init() {
 
     var isEditor = localStorage.getItem('isEditorLoggedIn') === 'true';
 
-    // Отображение меток
+    // Отображение всех меток
     savedPlaces.forEach(function(place, index) {
         var coords = place.coords || [parseFloat(place.lat), parseFloat(place.lng)];
         var category = place.category || 'Растения';
@@ -47,6 +46,7 @@ function init() {
             preset: category === 'Растения' ? 'islands#greenLeafIcon' : 'islands#orangeCircleIcon'
         });
 
+        // Нажатие на метку во время рисования тропы
         placemark.events.add('click', function () {
             if (isDrawingTrail) {
                 addPointToTrail(coords);
@@ -56,13 +56,13 @@ function init() {
         myMap.geoObjects.add(placemark);
     });
 
-    // Отображение тропы при загрузке
+    // Отрисовка тропы
     if (savedPath.length > 0) {
         trailPoints = savedPath;
         drawPolyline(savedPath);
     }
 
-    // Клик по карте при рисовании тропы
+    // Нажатие на карту при рисовании тропы
     myMap.events.add('click', function (e) {
         if (isDrawingTrail) {
             var coords = e.get('coords');
@@ -71,14 +71,12 @@ function init() {
     });
 }
 
-// Отрисовка линии (с защитой от вылета при < 2 точек)
 function drawPolyline(coordsArray) {
     if (currentPolyline) {
         myMap.geoObjects.remove(currentPolyline);
         currentPolyline = null;
     }
     
-    // Линию рисуем только если есть хотя бы 2 точки
     if (!coordsArray || coordsArray.length < 2) return;
 
     currentPolyline = new ymaps.Polyline(coordsArray, {
@@ -179,5 +177,3 @@ function deleteTrailOnly() {
         location.reload();
     }
 }
-
-
