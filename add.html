@@ -2,45 +2,72 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Добавить вид</title>
+    <title>Добавить экологический пункт</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>Добавление вида растения или животного</h1>
+        <h1>Добавление биометки на карту</h1>
         <a href="index.html" class="nav-btn">⬅ Назад к карте</a>
     </header>
 
-    <main class="form-container">
+    <main class="form-container" style="max-width: 600px; margin: 20px auto; padding: 20px;">
         <form id="add-form">
-            <label>Категория вида:
-                <select id="category" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px;">
-                    <option value="Растения">🌿 Растение</option>
-                    <option value="Животные">🐾 Животное</option>
+            <label>Категория пункта:
+                <select id="category" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 15px;">
+                    <option value="Растения">🌿 Растение (с фарм-слоем)</option>
+                    <option value="Гидрохимия">💧 Водный объект (Гидрохимия)</option>
+                    <option value="Лишайники">🍄 Лихеноиндикация / Лишайники</option>
                 </select>
             </label>
 
-            <label>Название вида:
-                <input type="text" id="title" required placeholder="Например: Дубовый усач">
+            <label>Название объекта / вида:
+                <input type="text" id="title" required placeholder="Например: Берёза повислая или р. Серебрянка">
             </label>
 
-            <label>Описание:
-                <textarea id="description" required placeholder="Введите описание..."></textarea>
+            <label>Латинское название (для растений):
+                <input type="text" id="speciesLatin" placeholder="Betula pendula">
             </label>
+
+            <label>Описание / Общая характеристика:
+                <textarea id="description" required placeholder="Введите описание экопункта..."></textarea>
+            </label>
+
+            <!-- Блок Фармакогнозии -->
+            <fieldset style="border: 1px solid #2e7d32; border-radius: 6px; padding: 10px; margin-bottom: 15px;">
+                <legend style="color: #2e7d32; font-weight: bold;">🌱 Фармакогностический блок (если растение)</legend>
+                <label>Лекарственное сырье (Gemmae/Folia/etc):
+                    <input type="text" id="rawMaterial" placeholder="Почки, листья">
+                </label>
+                <label>Действующие вещества (БАВ):
+                    <input type="text" id="activeCompounds" placeholder="Флавоноиды, эфирные масла, бетулин">
+                </label>
+            </fieldset>
+
+            <!-- Блок Гидрохимии -->
+            <fieldset style="border: 1px solid #0288d1; border-radius: 6px; padding: 10px; margin-bottom: 15px;">
+                <legend style="color: #0288d1; font-weight: bold;">💧 Гидрохимия (если водоем)</legend>
+                <div style="display: flex; gap: 10px;">
+                    <label style="flex: 1;">pH: <input type="number" step="0.1" id="ph" placeholder="7.4"></label>
+                    <label style="flex: 1;">gH (Жесткость): <input type="number" step="0.1" id="gh" placeholder="21"></label>
+                    <label style="flex: 1;">Fe (Железо мг/л): <input type="number" step="0.01" id="fe" placeholder="3.2"></label>
+                </div>
+            </fieldset>
 
             <label>Ссылка на фото (URL):
                 <input type="url" id="image" placeholder="https://site.com/image.jpg">
             </label>
 
-            <label>Широта (Latitude):
-                <input type="number" step="any" id="lat" required placeholder="55.7512">
-            </label>
+            <div style="display: flex; gap: 10px;">
+                <label style="flex: 1;">Широта (Lat):
+                    <input type="number" step="any" id="lat" required placeholder="55.7512">
+                </label>
+                <label style="flex: 1;">Долгота (Lng):
+                    <input type="number" step="any" id="lng" required placeholder="37.6184">
+                </label>
+            </div>
 
-            <label>Долгота (Longitude):
-                <input type="number" step="any" id="lng" required placeholder="37.6184">
-            </label>
-
-            <button type="submit" class="submit-btn">Сохранить на карту</button>
+            <button type="submit" class="submit-btn" style="margin-top: 15px; width: 100%;">Сохранить на карту</button>
         </form>
     </main>
 
