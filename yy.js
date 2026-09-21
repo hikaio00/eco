@@ -21,7 +21,7 @@ function init() {
 
     myMap = new ymaps.Map("map", {
         center: defaultCenter,
-        zoom: 13,
+        zoom: 12,
         controls: ['zoomControl', 'typeSelector', 'fullscreenControl']
     });
 
@@ -32,21 +32,47 @@ function init() {
         var coords = place.coords || [parseFloat(place.lat), parseFloat(place.lng)];
         var category = place.category || 'Растения';
         
+        // Формирование содержимого балуна
+        var bodyContent = '<p>' + (place.description || '') + '</p>';
+        
+        // Фарм-блок в балуне
+        if (place.pharma && (place.pharma.rawMaterial || place.pharma.activeCompounds)) {
+            bodyContent += '<div style="background:#f1f8e9; padding:8px; border-radius:5px; margin:8px 0;">' +
+                '<b>🌱 Сырье:</b> ' + (place.pharma.rawMaterial || '—') + '<br>' +
+                '<b>🧪 БАВ:</b> ' + (place.pharma.activeCompounds || '—') +
+                '</div>';
+        }
+
+        // Гидрохимический блок в балуне
+        if (place.hydro && (place.hydro.ph || place.hydro.fe)) {
+            bodyContent += '<div style="background:#e1f5fe; padding:8px; border-radius:5px; margin:8px 0;">' +
+                '<b>💧 Гидрохимия:</b><br>' +
+                'pH: ' + (place.hydro.ph || '—') + ' | gH: ' + (place.hydro.gh || '—') + '<br>' +
+                '<b>Fe (Железо):</b> <span style="color:' + (parseFloat(place.hydro.fe) > 0.3 ? 'red' : 'green') + '">' + (place.hydro.fe || '—') + ' мг/л</span>' +
+                '</div>';
+        }
+
+        if (place.image || place.photo) {
+            bodyContent += '<img src="' + (place.image || place.photo) + '" style="max-width:100%; height:auto; border-radius:4px;">';
+        }
+
         var deleteBtn = isEditor 
             ? '<br><br><button onclick="deleteSinglePlace(' + index + ')" style="background:#e74c3c; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">🗑️ Удалить метку</button>'
             : '';
 
+        // Выбор иконки
+        var iconPreset = 'islands#greenLeafIcon';
+        if (category === 'Гидрохимия') iconPreset = 'islands#blueWaterIcon';
+        if (category === 'Лишайники') iconPreset = 'islands#yellowSunIcon';
+
         var placemark = new ymaps.Placemark(coords, {
-            balloonContentHeader: '<h3>' + (place.title || place.name || '') + '</h3>',
-            balloonContentBody: '<p>' + (place.description || '') + '</p>' +
-                (place.image || place.photo ? '<img src="' + (place.image || place.photo) + '" style="max-width:100%; height:auto; border-radius:4px;">' : '') +
-                deleteBtn,
-            balloonContentFooter: '<small>Вид: ' + category + '</small>'
+            balloonContentHeader: '<h3>' + (place.title || '') + (place.speciesLatin ? ' <i>(' + place.speciesLatin + ')</i>' : '') + '</h3>',
+            balloonContentBody: bodyContent + deleteBtn,
+            balloonContentFooter: '<small>Категория: ' + category + '</small>'
         }, {
-            preset: category === 'Растения' ? 'islands#greenLeafIcon' : 'islands#orangeCircleIcon'
+            preset: iconPreset
         });
 
-        // Нажатие на метку во время рисования тропы
         placemark.events.add('click', function () {
             if (isDrawingTrail) {
                 addPointToTrail(coords);
@@ -56,13 +82,11 @@ function init() {
         myMap.geoObjects.add(placemark);
     });
 
-    // Отрисовка тропы
     if (savedPath.length > 0) {
         trailPoints = savedPath;
         drawPolyline(savedPath);
     }
 
-    // Нажатие на карту при рисовании тропы
     myMap.events.add('click', function (e) {
         if (isDrawingTrail) {
             var coords = e.get('coords');
